@@ -5,7 +5,6 @@ description = "Project to querry personal documents with ChatGPT, LangChain and 
 authors = ["LibranTechie <brightkoech@gmail.com>"]
 license = "MIT"
 readme = "README.md"
-packages = [{include = "personal_chatgpt"}]
 
 [tool.poetry.dependencies]
 python = ">3.9.7,<4.0.0"
