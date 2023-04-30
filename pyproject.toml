@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "personal-chatgpt"
+version = "0.1.0"
+description = "Project to querry personal documents with ChatGPT, LangChain and Streamlit"
+authors = ["LibranTechie <brightkoech@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "personal_chatgpt"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+openai = "^0.27.5"
+streamlit = "^1.22.0"
+langchain = "^0.0.153"
+pypdf = "^3.8.1"
+flake8 = "^6.0.0"
+tiktoken = "^0.3.3"
+faiss-cpu = "^1.7.4"
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.3.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
