@@ -101,140 +101,136 @@ def test_embed():
 
 
 # Setup Streamlit Interface
-def main():
-    st.title("🤖 Libran-GPT: Personalised Conversational Search Bot With Memory 🧠")
-    st.markdown(
+
+st.title("🤖 Libran-GPT: Personalised Conversational Search Bot With Memory 🧠")
+st.markdown(
+    """
+        ####  🗨️ Chat with your PDF files 📜 with `Conversational Buffer Memory`
+        > *Powered by [LangChain]('https://langchain.readthedocs.io/en/latest/modules/memory.html#memory') +
+        [OpenAI]('https://platform.openai.com/docs/models/gpt-3-5') + [Streamlit](https://streamlit.io/)*
+        ----
         """
-            ####  🗨️ Chat with your PDF files 📜 with `Conversational Buffer Memory`
-            > *Powered by [LangChain]('https://langchain.readthedocs.io/en/latest/modules/memory.html#memory') +
-            [OpenAI]('https://platform.openai.com/docs/models/gpt-3-5') + [Streamlit](https://streamlit.io/)*
-            ----
-            """
-    )
+)
 
-    st.markdown(
-        """
-        `openai`
-        `langchain`
-        `tiktoken`
-        `pypdf`
-        `faiss-cpu`
+st.markdown(
+    """
+    `openai`
+    `langchain`
+    `tiktoken`
+    `pypdf`
+    `faiss-cpu`
 
-        ---------
-        """
-    )
+    ---------
+    """
+)
 
-    # Sidebar
-    st.sidebar.markdown(
-        """
-        ### Steps
-        1. 📜 Upload PDF File
-        2. 🔑 Enter OpenAI API Key
-        2. 🤖 Chat with your PDF
+# Sidebar
+st.sidebar.markdown(
+    """
+    ### Steps
+    1. 📜 Upload PDF File
+    2. 🔑 Enter OpenAI API Key
+    2. 🤖 Chat with your PDF
 
 
-        **Note : File content and API key not stored in any form.**
-        """
-    )
+    **Note : File content and API key not stored in any form.**
+    """
+)
 
-    # Upload PDF file
-    uploaded_file = st.file_uploader("**Upload Your PDF File**", type=["pdf"])
+# Upload PDF file
+uploaded_file = st.file_uploader("**Upload Your PDF File**", type=["pdf"])
 
-    if uploaded_file:
-        name_of_file = uploaded_file.name
-        doc = parse_data(uploaded_file)
-        pages = text_to_docs(doc)
+if uploaded_file:
+    name_of_file = uploaded_file.name
+    doc = parse_data(uploaded_file)
+    pages = text_to_docs(doc)
 
-    if uploaded_file:
-        name_of_file = uploaded_file.name
-        doc = parse_data(uploaded_file)
-        pages = text_to_docs(doc)
-        if pages:
-            # Allow the user to select a page and view its content
-            with st.expander("Show Page Content", expanded=False):
-                page_sel = st.number_input(
-                    label="Select Page", min_value=1, max_value=len(pages), step=1
-                )
-                pages[page_sel - 1]
-            # Allow the user to enter an OpenAI API key
-            api = st.text_input(
-                "**Enter OpenAI API Key**",
-                type="password",
-                placeholder="sk-",
-                help="https://platform.openai.com/account/api-keys",
+if uploaded_file:
+    name_of_file = uploaded_file.name
+    doc = parse_data(uploaded_file)
+    pages = text_to_docs(doc)
+    if pages:
+        # Allow the user to select a page and view its content
+        with st.expander("Show Page Content", expanded=False):
+            page_sel = st.number_input(
+                label="Select Page", min_value=1, max_value=len(pages), step=1
             )
-            if api:
-                # Test the embeddings and save the index in a vector database
-                index = test_embed()
-                # Set up the question-answering system
-                qa = RetrievalQA.from_chain_type(
-                    llm=OpenAI(openai_api_key=api),
-                    chain_type="map_reduce",
-                    retriever=index.as_retriever(),
+            pages[page_sel - 1]
+        # Allow the user to enter an OpenAI API key
+        api = st.text_input(
+            "**Enter OpenAI API Key**",
+            type="password",
+            placeholder="sk-",
+            help="https://platform.openai.com/account/api-keys",
+        )
+        if api:
+            # Test the embeddings and save the index in a vector database
+            index = test_embed()
+            # Set up the question-answering system
+            qa = RetrievalQA.from_chain_type(
+                llm=OpenAI(openai_api_key=api),
+                chain_type="map_reduce",
+                retriever=index.as_retriever(),
+            )
+            # Set up the conversational agent
+            tools = [
+                Tool(
+                    name="State of Union QA System",
+                    func=qa.run,
+                    description="Useful for when you need to answer questions about the aspects asked. Input may be a partial or fully formed question.",
                 )
-                # Set up the conversational agent
-                tools = [
-                    Tool(
-                        name="State of Union QA System",
-                        func=qa.run,
-                        description="Useful for when you need to answer questions about the aspects asked. Input may be a partial or fully formed question.",
-                    )
-                ]
-                prefix = """Have a conversation with a human, answering the following questions as best you can based on the context and memory available.
-                            You have access to a single tool:"""
-                suffix = """Begin!"
-                {chat_history}
-                Question: {input}
-                {agent_scratchpad}"""
+            ]
+            prefix = """Have a conversation with a human, answering the following questions as best you can based on the context and memory available.
+                        You have access to a single tool:"""
+            suffix = """Begin!"
+            {chat_history}
+            Question: {input}
+            {agent_scratchpad}"""
 
-                prompt = ZeroShotAgent.create_prompt(
-                    tools,
-                    prefix=prefix,
-                    suffix=suffix,
-                    input_variables=["input", "chat_history", "agent_scratchpad"],
-                )
+            prompt = ZeroShotAgent.create_prompt(
+                tools,
+                prefix=prefix,
+                suffix=suffix,
+                input_variables=["input", "chat_history", "agent_scratchpad"],
+            )
 
-                if "memory" not in st.session_state:
-                    st.session_state.memory = ConversationBufferMemory(
-                        memory_key="chat_history"
-                    )
-
-                llm_chain = LLMChain(
-                    llm=OpenAI(
-                        temperature=0, openai_api_key=api, model_name="gpt-3.5-turbo"
-                    ),
-                    prompt=prompt,
-                )
-                agent = ZeroShotAgent(llm_chain=llm_chain, tools=tools, verbose=True)
-                agent_chain = AgentExecutor.from_agent_and_tools(
-                    agent=agent,
-                    tools=tools,
-                    verbose=True,
-                    memory=st.session_state.memory,
+            if "memory" not in st.session_state:
+                st.session_state.memory = ConversationBufferMemory(
+                    memory_key="chat_history"
                 )
 
-                # Allow the user to enter a query and generate a response
-                query = st.text_input(
-                    "**What's on your mind?**",
-                    placeholder="Ask me anything from {}".format(name_of_file),
-                )
+            llm_chain = LLMChain(
+                llm=OpenAI(
+                    temperature=0, openai_api_key=api, model_name="gpt-3.5-turbo"
+                ),
+                prompt=prompt,
+            )
+            agent = ZeroShotAgent(llm_chain=llm_chain, tools=tools, verbose=True)
+            agent_chain = AgentExecutor.from_agent_and_tools(
+                agent=agent,
+                tools=tools,
+                verbose=True,
+                memory=st.session_state.memory,
+            )
 
-                if query:
-                    with st.spinner(
-                        "Generating Answer to your Query : `{}` ".format(query)
-                    ):
-                        res = agent_chain.run(query)
-                        st.info(res, icon="🤖")
+            # Allow the user to enter a query and generate a response
+            query = st.text_input(
+                "**What's on your mind?**",
+                placeholder="Ask me anything from {}".format(name_of_file),
+            )
 
-                # Allow the user to view the conversation history and other information stored in the agent's memory
-                with st.expander("History/Memory"):
-                    st.session_state.memory
+            if query:
+                with st.spinner(
+                    "Generating Answer to your Query : `{}` ".format(query)
+                ):
+                    res = agent_chain.run(query)
+                    st.info(res, icon="🤖")
 
-    # Add a Image and a link to a blog post in the sidebar
-    with st.sidebar:
-        logo_name = os.path.join(images_dir, "logo.png")
-        st.image(logo_name, use_column_width=True)
+            # Allow the user to view the conversation history and other information stored in the agent's memory
+            with st.expander("History/Memory"):
+                st.session_state.memory
 
-
-if __name__ == "__main__":
-    main()
+# Add a Image and a link to a blog post in the sidebar
+with st.sidebar:
+    logo_name = os.path.join(images_dir, "logo.png")
+    st.image(logo_name, use_column_width=True)
