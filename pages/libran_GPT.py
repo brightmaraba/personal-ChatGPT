@@ -24,6 +24,7 @@ from langchain.docstore.document import Document
 from langchain.document_loaders import PyPDFLoader
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.llms import OpenAI
+from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import VectorStore
@@ -168,7 +169,7 @@ if uploaded_file:
             index = test_embed()
             # Set up the question-answering system
             qa = RetrievalQA.from_chain_type(
-                llm=OpenAI(openai_api_key=api),
+                llm=ChatOpenAI(openai_api_key=api),
                 chain_type="map_reduce",
                 retriever=index.as_retriever(),
             )
@@ -200,7 +201,7 @@ if uploaded_file:
                 )
 
             llm_chain = LLMChain(
-                llm=OpenAI(
+                llm=ChatOpenAI(
                     temperature=0, openai_api_key=api, model_name="gpt-3.5-turbo"
                 ),
                 prompt=prompt,
